@@ -2,37 +2,42 @@ import cv2
 from ultralytics import YOLO
 from process import Processor
 import pandas as pd
-import os 
+import os
 
 class Model:
     def __init__(
-        self, 
-        model: str, 
-        tracker: str, 
-        input_source: str, 
-        input_type: str = "video",  
-        video_output_name: str = "video.avi"
+        self,
+        model: str,
+        tracker: str,
+        conf: int,
+        iou: int,
+        input_source: str,
+        input_type: str = "video",
+        video_output_name: str = "captured/video.avi",
+
+        
     ):
+        
         self.model = YOLO(model, verbose=True)
         self.processor = Processor()
         self.tracker = tracker
-        self.input_source = input_source  # Path for video, device index or URL for webcam/CCTV
-        self.input_type = input_type.lower()  # 'video' or 'realtime'
+        self.input_source = input_source 
+        self.input_type = input_type.lower()
         self.output_name = video_output_name
         self.db_path = "db/data.csv"
+        self.conf = conf
+        self.iou = iou
         
         self.captured = None
         self.video_writer = None
-        
+
     def __call__(self):
-        return self._run()
+        self._setup()
+        self._run()
 
     def append_df_to_csv(self, df: pd.DataFrame, file_path: str):
-        """
-        Append a DataFrame to a CSV file, writing header
-        if the file does not yet exist.
-        """
-        mode   = "a" if os.path.exists(file_path) else "w"
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        mode = "a" if os.path.exists(file_path) else "w"
         header = not os.path.exists(file_path)
         df.to_csv(
             file_path,
@@ -41,90 +46,96 @@ class Model:
             index=False,
             encoding="utf-8"
         )
-        
-    
+
     def _setup(self):
-        # Initialize video capture based on input type
+        # Initialize capture
         if self.input_type == "video":
             self.captured = cv2.VideoCapture(self.input_source)
         elif self.input_type == "realtime":
-            # For webcam (e.g., 0) or CCTV (e.g., RTSP/HTTP URL)
-            try:
-                self.captured = cv2.VideoCapture(int(self.input_source))
-            except:
-                raise ValueError("Error: Could not open webcam or CCTV stream.")
-        else:
-            raise ValueError("Invalid input_type. Use 'video' or 'realtime'.")
-        
-        assert self.captured.isOpened(), f"Error opening {'video file' if self.input_type == 'video' else 'webcam/CCTV stream'}"
-        
-        w, h, fps = (int(self.captured.get(x)) for x in (
-            cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS))
-        
-        # Ensure valid FPS (default to 30 if FPS is 0, common for webcams)
-        fps = fps if fps > 0 else 30
-        self.video_writer = cv2.VideoWriter(self.output_name, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
+            # Distinguish between webcam and cctv
+            
+            if str(self.input_source).isdigit():
+                self.captured = cv2.VideoCapture(int(self.input_source)) # "0", "1" for webcams
 
-    def run(self):
-        # Process each frame
-        while self.captured.isOpened():
+            # rtsp:// or http:// URLs
+            else:
+                self.captured = cv2.VideoCapture(self.input_source)
+            
+        else:
+            raise ValueError("input_type must be 'video' or 'realtime'")
+
+        if not self.captured.isOpened():
+            src = 'video file' if self.input_type=='video' else 'stream'
+            raise RuntimeError(f"Error opening {src}")
+
+        w = int(self.captured.get(cv2.CAP_PROP_FRAME_WIDTH))
+        h = int(self.captured.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = int(self.captured.get(cv2.CAP_PROP_FPS)) or 30
+        
+        os.makedirs(os.path.dirname(self.output_name), exist_ok=True)
+        self.video_writer = cv2.VideoWriter(
+            self.output_name,
+            cv2.VideoWriter_fourcc(*"mp4v"),
+            fps,
+            (w, h)
+        )
+
+    def _run(self):
+        while True:
             success, frame = self.captured.read()
             if not success:
-                print("Video frame is empty or processing is complete.")
+                print("Finished processing or empty frame.")
                 break
 
-            # Run YOLO detection + tracking
-            results = self.model.track(source=frame, persist=True, tracker=self.tracker, conf=0.45)
-
-            # Process detection results
+            results = self.model.track(
+                source=frame,
+                persist=True,
+                tracker=self.tracker,
+                conf=self.conf,
+                iou = self.iou
+            )
             sales = self.processor(results)
-            
+
             if self.processor.count:
-                
                 sales_df = self.processor.get_new_sales_df()
                 if sales_df is not None:
-                    self.append_df_to_csv(sales_df, self.db_path)         
-                
-                self.processor.count= False
+                    self.append_df_to_csv(sales_df, self.db_path)
+                self.processor.count = False
 
-            # Draw sales info on the frame
-            result_frame = results[0].plot()
+            frame_out = results[0].plot()
             cv2.putText(
-                result_frame,
-                text=f"Number of pizza sales: {sales}",
-                org=(100, 50),
-                fontFace=cv2.FONT_HERSHEY_PLAIN,
-                fontScale=1,
-                color=(255, 0, 0),
-                thickness=3
+                frame_out,
+                f"Number of pizza sales: {sales}",
+                (150, 50),
+                cv2.FONT_HERSHEY_PLAIN,
+                2,
+                (0, 200, 100),
+                2
             )
 
-            # Write to video file and show on screen
-            self.video_writer.write(result_frame)
-            cv2.imshow("Pizza Sale Tracker", result_frame)
+            self.video_writer.write(frame_out)
+            cv2.imshow("Pizza Sale Tracker", frame_out)
 
-            # For real-time, reduce delay to make it feel live
             delay = 1 if self.input_type == "realtime" else 10
-            if cv2.waitKey(delay) & 0xFF == ord("q"):
+            if cv2.waitKey(delay) & 0xFF == ord('q'):
                 break
 
-        # Clean up
         self.captured.release()
         self.video_writer.release()
         cv2.destroyAllWindows()
-        
+
+
 def main():
-  
-    realtime_model = Model(
+    model = Model(
         model="weights/best.pt",
         tracker="tracker.yaml",
-        input_source=0,  
+        input_source=0,
         input_type="realtime",
-        video_output_name="realtime_output.avi"
+        video_output_name="realtime_output.avi",
+        conf = 0.5,
+        iou= 0.5
     )
-    
-    realtime_model._setup()
-    realtime_model.run()
-    
+    model()
+
 if __name__ == "__main__":
     main()

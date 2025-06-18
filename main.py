@@ -29,6 +29,18 @@ def parse_args():
         help="Input type: 'video' for video file, 'realtime' for webcam/CCTV"
     )
     parser.add_argument(
+        "--conf", 
+        type=int, 
+        default= 0.45, 
+        help="Confidence score"
+    )
+    parser.add_argument(
+        "--iou", 
+        type=int, 
+        default=0.6, 
+        help="Intersection over Union"
+    )
+    parser.add_argument(
         "--output", 
         type=str, 
         default="captured/output.avi", 
@@ -46,13 +58,15 @@ def main():
         tracker=args.tracker,
         input_source=args.input_source,
         input_type=args.input_type,
-        video_output_name=args.output
+        video_output_name=args.output,
+        conf = args.conf,
+        iou = args.iou
     )
 
     # Setup and run the model
     try:
         model._setup()
-        model.run()
+        model._run()
     except Exception as e:
         print(f"Error: {e}")
 
