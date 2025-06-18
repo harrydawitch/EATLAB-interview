@@ -3,6 +3,7 @@ from ultralytics import YOLO
 from process import Processor
 import pandas as pd
 import os
+import torch
 
 class Model:
     def __init__(
@@ -30,6 +31,7 @@ class Model:
         
         self.captured = None
         self.video_writer = None
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def __call__(self):
         self._setup()
@@ -92,7 +94,8 @@ class Model:
                 persist=True,
                 tracker=self.tracker,
                 conf=self.conf,
-                iou = self.iou
+                iou = self.iou,
+                device= self.device
             )
             sales = self.processor(results)
 
