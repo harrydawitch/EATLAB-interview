@@ -1,0 +1,13 @@
+train: ./train/images
+val: ./valid/images
+test: ./test/images
+
+nc: 2
+names: ['box', 'pizza']
+
+roboflow:
+  workspace: poo-c2yq4
+  project: final-pizza-dataset
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/poo-c2yq4/final-pizza-dataset/dataset/1
