@@ -19,23 +19,23 @@ class Processor:
     def __init__(self):
         self.tracked = {}
         self.database = {
-                         "Data": [],
+                         "Date": [],
                          "Time": [],
-                         "Count": 0
+                         "Pizza": 0
                          }
-        self.pizza2box = {}
-        
+        self.count = False     
+           
     def get_new_sales_df(self):
         """
         Convert the latest sale(s) in self.database into
         a one‑row DataFrame, then reset that part of the database.
         """
-        if self.database["Count"] == 0:
+        if self.database["Pizza"] == 0:
             return None
         df = pd.DataFrame([{
+                            "Pizza":    self.database["Pizza"],
                             "Date":     self.database["Date"][-1],
                             "Time":     self.database["Time"][-1],
-                            "Count":    self.database["Count"]
                           }])
         return df
                 
@@ -107,7 +107,9 @@ class Processor:
                         
                         self.database["Date"].append(date)
                         self.database["Time"].append(time)
-                        self.database["Count"] += 1
+                        self.database["Pizza"] += 1
+                        
+                        self.count = True
                     
                     # if it's already mapped to the same pizza, continue
                     elif existing == pizza_id:
@@ -127,7 +129,7 @@ class Processor:
         if pizzas and openboxes:
             self._process_bbox(pizzas, openboxes, pizza_ids, openbox_ids)
         
-        return self.database["Count"]
+        return self.database["Pizza"]
         
     def __call__(self, results):
         return self._count_sale(results)
