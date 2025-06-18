@@ -26,7 +26,7 @@ For interviewer who will review my project please go to this link first to see m
    ```
 ## Usage 
 
-The `main.py` script runs a YOLOv8 model for object detection and tracking. It supports:
+The `main.py` script runs a YOLOv11 model for object detection and tracking. It supports:
 
 * Video files (.mp4, .avi, etc.)
 * Realtime streams (webcam or RTSP URLs)
