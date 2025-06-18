@@ -1,5 +1,5 @@
 import argparse
-from model import Model  # Assuming Model class is in model.py
+from model import Model
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run YOLO model on video or real-time webcam/CCTV feed.")

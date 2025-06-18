@@ -1,8 +1,8 @@
 import cv2
 from ultralytics import YOLO
 from process import Processor
-from db.data import append_df_to_csv
 import pandas as pd
+import os 
 
 class Model:
     def __init__(
@@ -26,6 +26,22 @@ class Model:
         
     def __call__(self):
         return self._run()
+
+    def append_df_to_csv(self, df: pd.DataFrame, file_path: str):
+        """
+        Append a DataFrame to a CSV file, writing header
+        if the file does not yet exist.
+        """
+        mode   = "a" if os.path.exists(file_path) else "w"
+        header = not os.path.exists(file_path)
+        df.to_csv(
+            file_path,
+            mode=mode,
+            header=header,
+            index=False,
+            encoding="utf-8"
+        )
+        
     
     def _setup(self):
         # Initialize video capture based on input type
@@ -67,7 +83,7 @@ class Model:
                 
                 sales_df = self.processor.get_new_sales_df()
                 if sales_df is not None:
-                    append_df_to_csv(sales_df, self.db_path)         
+                    self.append_df_to_csv(sales_df, self.db_path)         
                 
                 self.processor.count= False
 
