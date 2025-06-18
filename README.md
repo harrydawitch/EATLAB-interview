@@ -5,7 +5,7 @@ A smart AI-powered system uses YOLO to detect and track pizzas and pizza boxes i
 ## <span style="color:red">**MUST READ**</span>
 For interviewer who will review my project please go to this link first to see my project explanation: 
 
-[Project Explanation](https://img.shields.io/github/license/username/taskmaster)
+[Project Explanation](https://www.notion.so/CHU-HOANG-THIEN-LONG-EATLAB-Interview-project-explnation-216d8c535eb680a5aeeaf3c44a054f3e?pvs=4)
 
 ## Installation
 
