@@ -77,8 +77,8 @@ EATLAB-interview/
 |    ├─ train.py
 |
 ├──weights               # YOLO weight files
-    ├──best.pt
-
+|    ├──best.pt
+|
 ├── main.py              # Entry point for the app
 ├── model.py             # Model wrapper with YOLO and processor
 ├── process.py           # Logic for matching and zone
